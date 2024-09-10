@@ -11,6 +11,7 @@ use std::path::Path;
 struct Config<'a> {
   color_space: ColorSpace,
   var_lookup: VarContext<'a>,
+  create_namespaces: bool,
 }
 
 impl<'a> Config<'a> {
@@ -31,12 +32,14 @@ pub fn write_asset_catalog(
   path: impl AsRef<Path>,
   color_space: ColorSpace,
   delete_directory_if_exists: bool,
+  create_namespaces: bool,
 ) -> Result<(), Error> {
   let path = path.as_ref();
 
   let config = Config {
     color_space,
     var_lookup: VarContext::derive_from(doc),
+    create_namespaces
   };
 
   if path.exists() {
@@ -63,6 +66,14 @@ pub fn write_asset_catalog(
   Ok(())
 }
 
+fn ruleset_child_identifier(ruleset_identifier: &str, item_identifier: &str, config: &Config) -> String {
+  if config.create_namespaces {
+    return item_identifier.to_string();
+  } else {
+    return format!("{}{}", ruleset_identifier, item_identifier)
+  }
+}
+
 fn write_ruleset(
   ruleset: &RuleSet,
   path: impl AsRef<Path>,
@@ -76,6 +87,9 @@ fn write_ruleset(
     "info": {
       "version": 1,
       "author": "xcode"
+    },
+    "properties": {
+      "provides-namespace": config.create_namespaces
     }
   });
 
@@ -89,11 +103,11 @@ fn write_ruleset(
   for item in ruleset.items.iter() {
     match item {
       RuleSetItem::RuleSet(r) => {
-        let child_identifier = format!("{}{}", identifier, r.identifier);
+        let child_identifier = ruleset_child_identifier(identifier, &r.identifier, config);
         write_ruleset(r, &ruleset_path, &child_identifier, &config)?;
       }
       RuleSetItem::Declaration(d) => {
-        let child_identifier = format!("{}{}", identifier, d.identifier);
+        let child_identifier = ruleset_child_identifier(identifier, &d.identifier, config);
         write_declaration(d, &ruleset_path, &child_identifier, &config)?;
       }
     }

@@ -76,6 +76,9 @@ enum Command {
     /// Overwrite Asset catalog if it already exists
     #[arg(name = "force", long, short)]
     overwrite_asset_catalog: bool,
+    /// Create namespaces for groups of colors.
+    #[arg(name = "namespaces", long, short)]
+    create_namespaces: bool,
   },
 }
 
@@ -92,11 +95,13 @@ fn main() {
       output_path,
       color_space,
       overwrite_asset_catalog,
+      create_namespaces,
     } => generate_asset_catalog(
       input_file,
       output_path,
       color_space,
       overwrite_asset_catalog,
+      create_namespaces
     ),
   };
   match result {
@@ -142,6 +147,7 @@ fn generate_asset_catalog(
   output_path: impl AsRef<Path>,
   color_space: ColorSpace,
   overwrite_asset_catalog: bool,
+  create_namespaces: bool,
 ) -> Result<()> {
   let doc = parse_document_from_file(input_file)?;
   let output_path = output_path.as_ref();
@@ -151,6 +157,7 @@ fn generate_asset_catalog(
     output_path,
     color_space.into(),
     overwrite_asset_catalog,
+    create_namespaces,
   ) {
     Err(asset_catalog::Error::CatalogExists { .. }) => {
       println!(
